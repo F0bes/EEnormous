@@ -4,6 +4,7 @@
 #include <tamtypes.h>
 #include "EEmitter/Test.h"
 #include "EEmitter/Emitter.h"
+#include "EEmitter/Branch.h"
 
 using namespace EEmitter;
 using namespace EEmitter::Test::Asserts;
@@ -11,11 +12,12 @@ using namespace EEmitter::Test::Asserts;
 void Test_ADDI()
 {
 	uintptr_t* blockAddr = static_cast<uintptr_t*>(aligned_alloc(4, sizeof(uintptr_t) * 100));
+	printf("Block address: %p\n", blockAddr);
 	Block block(blockAddr, "Test_ADDI (Expected to fail)");
 
 	SetBlock(&block);
-	xADDI(t0, zero, 0x12);
-	xASSERT::CMP<u32>(t0, 0x11, CompType::EQ);
+	xADDI(t0, zero, 0x11);
+	xASSERT::CMP<u16>(t0, 0x10, CompType::LT);
 	block.Finish();
 
 	block.Execute();
@@ -23,51 +25,55 @@ void Test_ADDI()
 	free(blockAddr);
 }
 
-// Overengineered and silly, but serves as an example
-template <size_t N, u32 base>
-struct add_truths
+void Test_Branch()
 {
-	constexpr add_truths()
-		: results()
-	{
-		for (size_t i = 0; i < N; i++)
-		{
-			results[i] = i + base;
-		}
-	}
-	u32 results[N];
-};
-
-void Test_ADDIU_Loop()
-{
-	uintptr_t* blockAddr = static_cast<uintptr_t*>(aligned_alloc(4, sizeof(uintptr_t) * 300));
-	Block block(blockAddr, "Test_ADDIU_Looped");
+	uintptr_t* blockAddr = static_cast<uintptr_t*>(aligned_alloc(4, sizeof(uintptr_t) * 200));
+	printf("Block address: %p\n", blockAddr);
+	Block block(blockAddr, "Test_Branch");
 
 	SetBlock(&block);
 
-	// Emitter suppports pseudo instructions!
-	xLI(t0, 0xdead);
+	auto temp = xAllocReg();
+	auto temp2 = xAllocReg();
 
-	constexpr auto truths = add_truths<25, 0xdead>();
-	for (size_t i = 0; i < 25; i++)
-	{
-		xADDIU(t1, t0, i);
-		xASSERT::CMP<u32>(t1, truths.results[i], CompType::EQ);
-	}
+	xLI(temp, 0xdead);
+	xLI(temp2, 0xbeef);
+	xFBRANCH::BEQL branch(temp, temp2, false);
+
+	xORI(temp, zero, 0xBAD);
+	xNOP();
+	branch.SetTarget();
+
+	xASSERT::CMP<u32>(temp, 0xBAD, CompType::NE);
 
 	block.Finish();
 	block.Execute();
-
 	free(blockAddr);
+}
+
+void main_thread(void* arg)
+{
+	printf("Hello from main thread!\n");
+	EEmitter::Test::Init();
+	Test_ADDI();
+	Test_Branch();
+
+	SleepThread();
 }
 
 int main(void)
 {
-	// Setup for syscall testing and assert handling
+	ee_thread_t thread;
+	thread.func = reinterpret_cast<void*>(main_thread);
+	thread.stack = aligned_alloc(4, 0x300000);
+	thread.stack_size = 0x300000;
+	thread.gp_reg = &_gp;
+	thread.initial_priority = 0x60;
 
-	EEmitter::Test::Init();
-	Test_ADDI();
-	Test_ADDIU_Loop();
+	auto threadID = CreateThread(&thread);
 
+	StartThread(threadID, nullptr);
+
+	printf("Complete\n");
 	SleepThread();
 }

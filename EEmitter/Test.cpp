@@ -107,41 +107,71 @@ namespace EEmitter
 		{
 			void genBranchByComptype(const xRegisterGPR& a, const xRegisterGPR& b, CompType comp_type, u16 offset)
 			{
+				auto scratch = xAllocReg();
 				switch (comp_type)
 				{
 					case CompType::EQ:
-						xBEQ(a, b, offset);
+						xXOR(scratch, b, a);
+						xBEQ(scratch, zero, offset);
 						xNOP();
 						break;
 					case CompType::NE:
-						xBNE(a, b, offset);
+						xXOR(scratch, b, a);
+						xBNE(scratch, zero, offset);
 						xNOP();
 						break;
 					case CompType::LT:
-						xSUB(a, b);
-						xBLTZ(a, offset + 1);
+						xSUB(scratch, b, a);
+						xBGTZ(scratch, offset + 1);
 						xNOP();
 						break;
 					case CompType::LE:
-						xSUB(a, b);
-						xBLEZ(a, offset + 1);
+						xSUB(scratch, b, a);
+						xBGEZ(scratch, offset + 1);
 						xNOP();
 						break;
 					case CompType::GT:
-						xSUB(a, b);
-						xBGTZ(a, offset + 1);
+						xSUB(scratch, b, a);
+						xBLTZ(scratch, offset + 1);
 						xNOP();
 						break;
 					case CompType::GE:
-						xSUB(a, b);
-						xBGEZ(a, offset + 1);
+						xSUB(scratch, b, a);
+						xBLEZ(scratch, offset + 1);
 						xNOP();
 						break;
 				}
+				xFreeReg(scratch);
 			}
 
-			// Jumped to directly from a block when we hit an assertion
-			// We need to return to ret_ptr!
+			void genMaskFromSize(const xRegisterGPR& value, size_t size)
+			{
+				auto scratch = xAllocReg();
+				switch (size)
+				{
+					case sizeof(u8):
+						xLI(scratch, 0xFF);
+						xAND(value, scratch);
+						break;
+					case sizeof(u16):
+						xLI(scratch, 0xFFFF);
+						xAND(value, scratch);
+						break;
+					case sizeof(u32):
+						xLI(scratch, 0xFFFFFFFF);
+						// Clear upper 32 bits
+						xPEXTLW(scratch, zero, scratch);
+						xAND(value, scratch);
+						break;
+					case sizeof(u64):
+						// Sign extention will set the top 64 bits
+						xLI(scratch, 0xFFFFFFFF);
+						xAND(value, scratch);
+						break;
+				}
+				xFreeReg(scratch);
+			}
+
 			void _AssertionUsermodeHandler()
 			{
 				const ArithAssertResult& assert = state::lastBlockExecuted->blockAsserts[internal::assertion_failed_id];
@@ -157,13 +187,62 @@ namespace EEmitter
 				}
 				else if (assert.comp_source == CompSource::REG_IMM)
 				{
-					std::snprintf(msg, sizeof(msg), "<%s> Assertion failed: %s %s 0x%X (%s actual 0x%X)\n",
-						state::lastBlockExecuted->GetName().cbegin(),
-						assert.regA.name.cbegin(),
-						CompTypeToString(assert.comp_type).cbegin(),
-						std::any_cast<u32>(assert.expected_val),
-						assert.regA.name.cbegin(),
-						std::any_cast<u32>(assert.actual_val));
+					// A better runtime typing system needs to be implemented!
+					switch (assert.val_size)
+					{
+						case sizeof(u8):
+						{
+							std::snprintf(msg, sizeof(msg), "<%s> Assertion failed: %s %s 0x%x (%s actual 0x%x)\n",
+								state::lastBlockExecuted->GetName().cbegin(),
+								assert.regA.name.cbegin(),
+								CompTypeToString(assert.comp_type).cbegin(),
+								std::any_cast<u8>(assert.expected_val),
+								assert.regA.name.cbegin(),
+								std::any_cast<u8>(assert.actual_val));
+							break;
+						}
+						case sizeof(u16):
+						{
+							std::snprintf(msg, sizeof(msg), "<%s> Assertion failed: %s %s 0x%x (%s actual 0x%x)\n",
+								state::lastBlockExecuted->GetName().cbegin(),
+								assert.regA.name.cbegin(),
+								CompTypeToString(assert.comp_type).cbegin(),
+								std::any_cast<u16>(assert.expected_val),
+								assert.regA.name.cbegin(),
+								std::any_cast<u16>(assert.actual_val));
+							break;
+						}
+						case sizeof(u32):
+						{
+							std::snprintf(msg, sizeof(msg), "<%s> Assertion failed: %s %s 0x%x (%s actual 0x%x)\n",
+								state::lastBlockExecuted->GetName().cbegin(),
+								assert.regA.name.cbegin(),
+								CompTypeToString(assert.comp_type).cbegin(),
+								std::any_cast<u32>(assert.expected_val),
+								assert.regA.name.cbegin(),
+								std::any_cast<u32>(assert.actual_val));
+							break;
+						}
+						case sizeof(u64):
+						{
+							std::snprintf(msg, sizeof(msg), "<%s> Assertion failed: %s %s 0x%llx (%s actual 0x%llx)\n",
+								state::lastBlockExecuted->GetName().cbegin(),
+								assert.regA.name.cbegin(),
+								CompTypeToString(assert.comp_type).cbegin(),
+								std::any_cast<u64>(assert.expected_val),
+								assert.regA.name.cbegin(),
+								std::any_cast<u64>(assert.actual_val));
+							break;
+						}
+						case sizeof(u128):
+						{
+							std::snprintf(msg, sizeof(msg), "<%s> Assertion failed: %s %s (128-bit imm view not implemented)\n",
+								state::lastBlockExecuted->GetName().cbegin(),
+								assert.regA.name.cbegin(),
+								CompTypeToString(assert.comp_type).cbegin());
+							break;
+						}
+					}
 				}
 
 				puts(msg);
@@ -174,7 +253,10 @@ namespace EEmitter
 				state::block->blockAsserts.emplace_back(ArithAssertResult(comp_type, a, b));
 				const size_t assertID = state::block->blockAsserts.size() - 1;
 
-				genBranchByComptype(a, b, comp_type, 6);
+				genBranchByComptype(a, b, comp_type, 7);
+				xORI(v0, zero, 9);
+				xLD(v0, v0, 0);
+				// TODO: Preserve v0, v1 and a0
 				xORI(v0, zero, assertID);
 				xORI(v1, zero, SYSCALL_ASSERT_CODE);
 				xSYSCALL();
@@ -185,52 +267,64 @@ namespace EEmitter
 
 			void xASSERT::CMP(const xRegisterGPR& a, const std::any& imm, CompType comp_type, size_t bytes)
 			{
-				if (a.id == v0.id)
+				if (bytes >= sizeof(u128))
 				{
-					printf("xASSERT::CMP: Cannot compare v0 with immediate\n");
+					printf("128-bit compare is not available!\n");
 					return;
 				}
-
-				state::block->blockAsserts.emplace_back(ArithAssertResult(comp_type, imm, bytes, a));
+				GetBlock()->blockAsserts.emplace_back(ArithAssertResult(comp_type, imm, bytes, a));
 				const size_t assertID = state::block->blockAsserts.size() - 1;
 
+				auto immReg = xAllocReg();
 				switch (bytes)
 				{
 					case sizeof(u8):
 					{
-						xLI(v0, std::any_cast<u8>(imm));
+						xLI(immReg, std::any_cast<u8>(imm));
 						break;
 					}
 					case sizeof(u16):
 					{
-						xLI(v0, std::any_cast<u16>(imm));
+						xLI(immReg, std::any_cast<u16>(imm));
 						break;
 					}
 					case sizeof(u32):
 					{
-						xLI(v0, std::any_cast<u32>(imm));
+						xLI(immReg, std::any_cast<u32>(imm));
+						// Clear the top 32 bits of the imm reg
+						// Our mask will have the top 32 bits cleared
+						// (This is becoming my favourite instruction ^_^)
+						xPEXTLW(immReg, zero, immReg);
 						break;
 					}
 					case sizeof(u64):
 					{
-						// do something, dunno yet
-						break;
-					}
-					case sizeof(u128):
-					{
-						// await MMI instruction implementation
+						xLI(immReg, std::any_cast<u64>(imm) >> 32);
+						auto tmp = xAllocReg();
+						xLI(tmp, std::any_cast<u64>(imm));
+						xPEXTLW(immReg, immReg, tmp);
+						xFreeReg(tmp);
 						break;
 					}
 				}
 
-				genBranchByComptype(a, v0, comp_type, 7);
+				genMaskFromSize(a, bytes);
+				genBranchByComptype(a, immReg, comp_type, 7);
+
+				// TODO: Preserve v0, v1 and a0
 				xORI(v0, zero, assertID);
 				xORI(v1, zero, SYSCALL_ASSERT_CODE);
-				xADD(a0, a, zero);
+				if (bytes > sizeof(u32))
+					xPOR(a0, a, zero);
+				else
+					xADD(a0, a, zero);
 				xSYSCALL();
+
 				xJ((uintptr_t)_AssertionUsermodeHandler);
+
 				xNOP();
 				xNOP();
+				xFreeReg(immReg);
 			}
 		} // namespace Asserts
 	} // namespace Test

@@ -2,6 +2,7 @@
 #include "Opcodes.h"
 #include <tamtypes.h>
 #include <cstdint>
+#include <cstdio>
 #include <any>
 
 namespace EEmitter
@@ -9,7 +10,7 @@ namespace EEmitter
 	namespace Test
 	{
 		// Don't call this outside of a test block
-		const u32 SYSCALL_ASSERT_CODE = 0x7A;
+		const u32 SYSCALL_ASSERT_CODE = 0x75;
 
 		namespace internal
 		{
@@ -110,6 +111,7 @@ namespace EEmitter
 					, regB(b)
 				{
 				}
+				~ArithAssertResult() = default;
 			};
 
 			class xASSERT

@@ -1,7 +1,6 @@
 #pragma once
 #include "Block.h"
 #include "Opcodes.h"
-
 namespace EEmitter
 {
 	namespace state
@@ -10,13 +9,19 @@ namespace EEmitter
 		extern Block* lastBlockExecuted;
 	} // namespace state
 	void SetBlock(Block* block);
-	void GetBlock(Block* block);
+	Block* GetBlock();
 
 	using namespace Registers;
 
+	// Register allocation
 
-	// Psuedo instructions
+	const xRegisterGPR& xAllocReg();
+	bool xTryAllocReg(const xRegisterGPR& reg);
+	void xFreeReg(const xRegisterGPR& reg);
+	bool xIsRegFree(const xRegisterGPR& reg);
+	void xFreeAllRegisters();
 
+	// Our giant list of opcodes
 	void xNOP();
 	void xLI(const xRegisterGPR& rt, u32 imm);
 
@@ -60,22 +65,22 @@ namespace EEmitter
 	void xDIV(const xRegisterGPR& rs, const xRegisterGPR& rt);
 	void xDIVU(const xRegisterGPR& rs, const xRegisterGPR& rt);
 
-	void xDSLL(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa);
-	void xDSLL(const xRegisterGPR& rt, const u8& sa);
-	void xDSLL32(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa);
-	void xDSLL32(const xRegisterGPR& rt, const u8& sa);
+	void xDSLL(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa);
+	void xDSLL(const xRegisterGPR& rt, u8 sa);
+	void xDSLL32(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa);
+	void xDSLL32(const xRegisterGPR& rt, u8 sa);
 	void xDSLLV(const xRegisterGPR& rd, const xRegisterGPR& rt, const xRegisterGPR& rs);
 	void xDSLLV(const xRegisterGPR& rt, const xRegisterGPR& rs);
-	void xDSRA(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa);
-	void xDSRA(const xRegisterGPR& rt, const u8& sa);
-	void xDSRA32(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa);
-	void xDSRA32(const xRegisterGPR& rt, const u8& sa);
+	void xDSRA(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa);
+	void xDSRA(const xRegisterGPR& rt, u8 sa);
+	void xDSRA32(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa);
+	void xDSRA32(const xRegisterGPR& rt, u8 sa);
 	void xDSRAV(const xRegisterGPR& rd, const xRegisterGPR& rt, const xRegisterGPR& rs);
 	void xDSRAV(const xRegisterGPR& rt, const xRegisterGPR& rs);
-	void xDSRL(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa);
-	void xDSRL(const xRegisterGPR& rt, const u8& sa);
-	void xDSRL32(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa);
-	void xDSRL32(const xRegisterGPR& rt, const u8& sa);
+	void xDSRL(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa);
+	void xDSRL(const xRegisterGPR& rt, u8 sa);
+	void xDSRL32(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa);
+	void xDSRL32(const xRegisterGPR& rt, u8 sa);
 	void xDSRLV(const xRegisterGPR& rd, const xRegisterGPR& rt, const xRegisterGPR& rs);
 	void xDSRLV(const xRegisterGPR& rt, const xRegisterGPR& rs);
 
@@ -122,17 +127,17 @@ namespace EEmitter
 	void xNOR(const xRegisterGPR& rs, const xRegisterGPR& rt);
 	void xOR(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt);
 	void xOR(const xRegisterGPR& rs, const xRegisterGPR& rt);
-	void xORI(const xRegisterGPR& rt, const xRegisterGPR& rs, const u16& imm);
+	void xORI(const xRegisterGPR& rt, const xRegisterGPR& rs, u16 imm);
 
-	void xPREF(const u8& hint, const xRegisterGPR& rs, s16 offset);
+	void xPREF(u8 hint, const xRegisterGPR& rs, s16 offset);
 
 	void xSB(const xRegisterGPR& rt, const xRegisterGPR& rs, s16 offset);
 	void xSD(const xRegisterGPR& rt, const xRegisterGPR& rs, s16 offset);
 	void xSDL(const xRegisterGPR& rt, const xRegisterGPR& rs, s16 offset);
 	void xSDR(const xRegisterGPR& rt, const xRegisterGPR& rs, s16 offset);
 	void xSH(const xRegisterGPR& rt, const xRegisterGPR& rs, s16 offset);
-	void xSLL(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa);
-	void xSLL(const xRegisterGPR& rt, const u8& sa);
+	void xSLL(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa);
+	void xSLL(const xRegisterGPR& rt, u8 sa);
 	void xSLLV(const xRegisterGPR& rd, const xRegisterGPR& rt, const xRegisterGPR& rs);
 	void xSLLV(const xRegisterGPR& rt, const xRegisterGPR& rs);
 
@@ -143,12 +148,12 @@ namespace EEmitter
 	void xSLTU(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt);
 	void xSLTU(const xRegisterGPR& rs, const xRegisterGPR& rt);
 
-	void xSRA(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa);
-	void xSRA(const xRegisterGPR& rt, const u8& sa);
+	void xSRA(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa);
+	void xSRA(const xRegisterGPR& rt, u8 sa);
 	void xSRAV(const xRegisterGPR& rd, const xRegisterGPR& rt, const xRegisterGPR& rs);
 	void xSRAV(const xRegisterGPR& rt, const xRegisterGPR& rs);
-	void xSRL(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa);
-	void xSRL(const xRegisterGPR& rt, const u8& sa);
+	void xSRL(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa);
+	void xSRL(const xRegisterGPR& rt, u8 sa);
 	void xSRLV(const xRegisterGPR& rd, const xRegisterGPR& rt, const xRegisterGPR& rs);
 	void xSRLV(const xRegisterGPR& rt, const xRegisterGPR& rs);
 
@@ -161,33 +166,62 @@ namespace EEmitter
 	void xSWL(const xRegisterGPR& rt, const xRegisterGPR& rs, s16 offset);
 	void xSWR(const xRegisterGPR& rt, const xRegisterGPR& rs, s16 offset);
 
-	void xSYNC(const u8& stype);
+	void xSYNC(u8 stype);
 	void xSYNCL();
 	void xSYNCP();
 
 	void xSYSCALL();
-	void xSYSCALL(const u32& code);
+	void xSYSCALL(u32 code);
 
 	void xTEQ(const xRegisterGPR& rs, const xRegisterGPR& rt);
-	void xTEQ(const xRegisterGPR& rs, const xRegisterGPR& rt, const u32& code);
+	void xTEQ(const xRegisterGPR& rs, const xRegisterGPR& rt, u32 code);
 	void xTEQI(const xRegisterGPR& rs, s16 imm);
 	void xTGE(const xRegisterGPR& rs, const xRegisterGPR& rt);
-	void xTGE(const xRegisterGPR& rs, const xRegisterGPR& rt, const u32& code);
+	void xTGE(const xRegisterGPR& rs, const xRegisterGPR& rt, u32 code);
 	void xTGEI(const xRegisterGPR& rs, s16 imm);
 	void xTGEIU(const xRegisterGPR& rs, s16 imm);
 	void xTGEU(const xRegisterGPR& rs, const xRegisterGPR& rt);
-	void xTGEU(const xRegisterGPR& rs, const xRegisterGPR& rt, const u32& code);
+	void xTGEU(const xRegisterGPR& rs, const xRegisterGPR& rt, u32 code);
 	void xTLT(const xRegisterGPR& rs, const xRegisterGPR& rt);
-	void xTLT(const xRegisterGPR& rs, const xRegisterGPR& rt, const u32& code);
+	void xTLT(const xRegisterGPR& rs, const xRegisterGPR& rt, u32 code);
 	void xTLTI(const xRegisterGPR& rs, s16 imm);
 	void xTLTIU(const xRegisterGPR& rs, s16 imm);
 	void xTLTU(const xRegisterGPR& rs, const xRegisterGPR& rt);
-	void xTLTU(const xRegisterGPR& rs, const xRegisterGPR& rt, const u32& code);
+	void xTLTU(const xRegisterGPR& rs, const xRegisterGPR& rt, u32 code);
 	void xTNE(const xRegisterGPR& rs, const xRegisterGPR& rt);
-	void xTNE(const xRegisterGPR& rs, const xRegisterGPR& rt, const u32& code);
+	void xTNE(const xRegisterGPR& rs, const xRegisterGPR& rt, u32 code);
 	void xTNEI(const xRegisterGPR& rs, s16 imm);
 
 	void xXOR(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt);
 	void xXOR(const xRegisterGPR& rs, const xRegisterGPR& rt);
-	void xXORI(const xRegisterGPR& rt, const xRegisterGPR& rs, const u16& imm);
+	void xXORI(const xRegisterGPR& rt, const xRegisterGPR& rs, u16 imm);
+
+	// MMI
+
+	void xPCPYLD(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt);
+	void xPCPYLD(const xRegisterGPR& rs, const xRegisterGPR& rt);
+
+	void xPEXTLW(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt);
+	void xPEXTLW(const xRegisterGPR& rs, const xRegisterGPR& rt);
+
+	void xPOR(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt);
+	void xPOR(const xRegisterGPR& rs, const xRegisterGPR& rt);
+
+	void xPAND(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt);
+	void xPAND(const xRegisterGPR& rs, const xRegisterGPR& rt);
+
+	void xPCEQW(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt);
+	void xPCEQW(const xRegisterGPR& rs, const xRegisterGPR& rt);
+
+	void xPCGTW(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt);
+	void xPCGTW(const xRegisterGPR& rs, const xRegisterGPR& rt);
+
+	void xPPACB(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt);
+	void xPPACB(const xRegisterGPR& rs, const xRegisterGPR& rt);
+
+	void xPPACH(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt);
+	void xPPACH(const xRegisterGPR& rs, const xRegisterGPR& rt);
+
+	void xPREVH(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt);
+	void xPREVH(const xRegisterGPR& rs, const xRegisterGPR& rt);
 } // namespace EEmitter

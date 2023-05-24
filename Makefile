@@ -1,6 +1,6 @@
 EE_BIN = EEnormous.elf
 EE_OBJS = EEnormous.o
-EE_OBJS += EEmitter/Block.o EEmitter/Emitter.o EEmitter/Test.o
+EE_OBJS += EEmitter/Block.o EEmitter/Emitter.o EEmitter/Test.o EEmitter/Branch.o
 EE_LIBS = -lkernel -lstdc++
 
 EE_CXXFLAGS = -Werror -std=c++20

@@ -12,6 +12,19 @@ namespace EEmitter
 		state::block = block;
 	}
 
+	Block* GetBlock()
+	{
+		return state::block;
+	}
+
+	// Could this be done in a better way with some RAII?
+
+	const xRegisterGPR& xAllocReg() { return state::block->AllocateRegister(); }
+	bool xTryAllocReg(const xRegisterGPR& reg) { return state::block->TryAllocateRegister(reg); }
+	void xFreeReg(const xRegisterGPR& reg) { state::block->FreeRegister(reg); }
+	bool xIsRegFree(const xRegisterGPR& reg) { return state::block->IsRegisterFree(reg); }
+	void xFreeAllRegisters() { state::block->FreeAllRegisters(); }
+
 	// Pseudo instructions
 
 	void xNOP()
@@ -150,7 +163,7 @@ namespace EEmitter
 		block->Emit(GEN_OP_IMM(Opcodes::BNEL, rs.id, rt.id, offset));
 	}
 
-	void xBREAK(const u32& code)
+	void xBREAK(u32 code)
 	{
 		block->Emit(GEN_SPECIAL_CODE(code, Opcodes::CLASS_SPECIAL::BREAK));
 	}
@@ -195,22 +208,22 @@ namespace EEmitter
 		block->Emit(GEN_SPECIAL(rs.id, rt.id, 0x00, 0x00, Opcodes::CLASS_SPECIAL::DIVU));
 	}
 
-	void xDSLL(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa)
+	void xDSLL(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa)
 	{
 		block->Emit(GEN_SPECIAL(0x00, rt.id, rd.id, sa, Opcodes::CLASS_SPECIAL::DSLL));
 	}
 
-	void xDSLL(const xRegisterGPR& rt, const u8& sa)
+	void xDSLL(const xRegisterGPR& rt, u8 sa)
 	{
 		xDSLL(rt, rt, sa);
 	}
 
-	void xDSLL32(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa)
+	void xDSLL32(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa)
 	{
 		block->Emit(GEN_SPECIAL(0x00, rt.id, rd.id, sa, Opcodes::CLASS_SPECIAL::DSLL32));
 	}
 
-	void xDSLL32(const xRegisterGPR& rt, const u8& sa)
+	void xDSLL32(const xRegisterGPR& rt, u8 sa)
 	{
 		xDSLL32(rt, rt, sa);
 	}
@@ -225,22 +238,22 @@ namespace EEmitter
 		xDSLLV(rt, rt, rs);
 	}
 
-	void xDSRA(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa)
+	void xDSRA(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa)
 	{
 		block->Emit(GEN_SPECIAL(0x00, rt.id, rd.id, sa, Opcodes::CLASS_SPECIAL::DSRA));
 	}
 
-	void xDSRA(const xRegisterGPR& rt, const u8& sa)
+	void xDSRA(const xRegisterGPR& rt, u8 sa)
 	{
 		xDSRA(rt, rt, sa);
 	}
 
-	void xDSRA32(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa)
+	void xDSRA32(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa)
 	{
 		block->Emit(GEN_SPECIAL(0x00, rt.id, rd.id, sa, Opcodes::CLASS_SPECIAL::DSRA32));
 	}
 
-	void xDSRA32(const xRegisterGPR& rt, const u8& sa)
+	void xDSRA32(const xRegisterGPR& rt, u8 sa)
 	{
 		xDSRA32(rt, rt, sa);
 	}
@@ -255,22 +268,22 @@ namespace EEmitter
 		xDSRAV(rt, rt, rs);
 	}
 
-	void xDSRL(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa)
+	void xDSRL(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa)
 	{
 		block->Emit(GEN_SPECIAL(0x00, rt.id, rd.id, sa, Opcodes::CLASS_SPECIAL::DSRL));
 	}
 
-	void xDSRL(const xRegisterGPR& rt, const u8& sa)
+	void xDSRL(const xRegisterGPR& rt, u8 sa)
 	{
 		xDSRL(rt, rt, sa);
 	}
 
-	void xDSRL32(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa)
+	void xDSRL32(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa)
 	{
 		block->Emit(GEN_SPECIAL(0x00, rt.id, rd.id, sa, Opcodes::CLASS_SPECIAL::DSRL32));
 	}
 
-	void xDSRL32(const xRegisterGPR& rt, const u8& sa)
+	void xDSRL32(const xRegisterGPR& rt, u8 sa)
 	{
 		xDSRL32(rt, rt, sa);
 	}
@@ -460,12 +473,12 @@ namespace EEmitter
 		xOR(rs, rs, rt);
 	}
 
-	void xORI(const xRegisterGPR& rt, const xRegisterGPR& rs, const u16& imm)
+	void xORI(const xRegisterGPR& rt, const xRegisterGPR& rs, u16 imm)
 	{
 		block->Emit(GEN_OP_IMM(Opcodes::ORI, rs.id, rt.id, imm));
 	}
 
-	void xPREF(const u8& hint, const xRegisterGPR& rs, s16 offset)
+	void xPREF(u8 hint, const xRegisterGPR& rs, s16 offset)
 	{
 		block->Emit(GEN_OP_IMM(Opcodes::PREF, rs.id, hint, offset));
 	}
@@ -495,12 +508,12 @@ namespace EEmitter
 		block->Emit(GEN_OP_IMM(Opcodes::SH, rs.id, rt.id, offset));
 	}
 
-	void xSLL(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa)
+	void xSLL(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa)
 	{
 		block->Emit(GEN_SPECIAL(0x00, rt.id, rd.id, sa, Opcodes::CLASS_SPECIAL::SLL));
 	}
 
-	void xSLL(const xRegisterGPR& rt, const u8& sa)
+	void xSLL(const xRegisterGPR& rt, u8 sa)
 	{
 		xSLL(rt, rt, sa);
 	}
@@ -545,12 +558,12 @@ namespace EEmitter
 		xSLTU(rs, rs, rt);
 	}
 
-	void xSRA(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa)
+	void xSRA(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa)
 	{
 		block->Emit(GEN_SPECIAL(0x00, rt.id, rd.id, sa, Opcodes::CLASS_SPECIAL::SRA));
 	}
 
-	void xSRA(const xRegisterGPR& rt, const u8& sa)
+	void xSRA(const xRegisterGPR& rt, u8 sa)
 	{
 		xSRA(rt, rt, sa);
 	}
@@ -565,12 +578,12 @@ namespace EEmitter
 		xSRAV(rt, rt, rs);
 	}
 
-	void xSRL(const xRegisterGPR& rd, const xRegisterGPR& rt, const u8& sa)
+	void xSRL(const xRegisterGPR& rd, const xRegisterGPR& rt, u8 sa)
 	{
 		block->Emit(GEN_SPECIAL(0x00, rt.id, rd.id, sa, Opcodes::CLASS_SPECIAL::SRL));
 	}
 
-	void xSRL(const xRegisterGPR& rt, const u8& sa)
+	void xSRL(const xRegisterGPR& rt, u8 sa)
 	{
 		xSRL(rt, rt, sa);
 	}
@@ -620,7 +633,7 @@ namespace EEmitter
 		block->Emit(GEN_OP_IMM(Opcodes::SWR, rs.id, rt.id, offset));
 	}
 
-	void xSYNC(const u8& stype)
+	void xSYNC(u8 stype)
 	{
 		block->Emit(GEN_SPECIAL(0x00, 0x00, 0x00, stype, Opcodes::CLASS_SPECIAL::SYNC));
 	}
@@ -635,7 +648,7 @@ namespace EEmitter
 		xSYNC(1 << 5);
 	}
 
-	void xSYSCALL(const u32& code)
+	void xSYSCALL(u32 code)
 	{
 		block->Emit(GEN_SPECIAL_CODE(code, Opcodes::CLASS_SPECIAL::SYSCALL));
 	}
@@ -645,7 +658,7 @@ namespace EEmitter
 		xSYSCALL(0x00);
 	}
 
-	void xTEQ(const xRegisterGPR& rs, const xRegisterGPR& rt, const u32& code)
+	void xTEQ(const xRegisterGPR& rs, const xRegisterGPR& rt, u32 code)
 	{
 		block->Emit(GEN_SPECIAL_CODE_TRAP(rs.id, rt.id, code, Opcodes::CLASS_SPECIAL::TEQ));
 	}
@@ -660,7 +673,7 @@ namespace EEmitter
 		block->Emit(GEN_REGIMM(rs.id, Opcodes::CLASS_REGIMM::TEQI, imm));
 	}
 
-	void xTGE(const xRegisterGPR& rs, const xRegisterGPR& rt, const u32& code)
+	void xTGE(const xRegisterGPR& rs, const xRegisterGPR& rt, u32 code)
 	{
 		block->Emit(GEN_SPECIAL_CODE_TRAP(rs.id, rt.id, code, Opcodes::CLASS_SPECIAL::TGE));
 	}
@@ -680,7 +693,7 @@ namespace EEmitter
 		block->Emit(GEN_REGIMM(rs.id, Opcodes::CLASS_REGIMM::TGEIU, imm));
 	}
 
-	void xTGEU(const xRegisterGPR& rs, const xRegisterGPR& rt, const u32& code)
+	void xTGEU(const xRegisterGPR& rs, const xRegisterGPR& rt, u32 code)
 	{
 		block->Emit(GEN_SPECIAL_CODE_TRAP(rs.id, rt.id, code, Opcodes::CLASS_SPECIAL::TGEU));
 	}
@@ -690,7 +703,7 @@ namespace EEmitter
 		xTGEU(rs, rt, 0x00);
 	}
 
-	void xTLT(const xRegisterGPR& rs, const xRegisterGPR& rt, const u32& code)
+	void xTLT(const xRegisterGPR& rs, const xRegisterGPR& rt, u32 code)
 	{
 		block->Emit(GEN_SPECIAL_CODE_TRAP(rs.id, rt.id, code, Opcodes::CLASS_SPECIAL::TLT));
 	}
@@ -710,7 +723,7 @@ namespace EEmitter
 		block->Emit(GEN_REGIMM(rs.id, Opcodes::CLASS_REGIMM::TLTIU, imm));
 	}
 
-	void xTLTU(const xRegisterGPR& rs, const xRegisterGPR& rt, const u32& code)
+	void xTLTU(const xRegisterGPR& rs, const xRegisterGPR& rt, u32 code)
 	{
 		block->Emit(GEN_SPECIAL_CODE_TRAP(rs.id, rt.id, code, Opcodes::CLASS_SPECIAL::TLTU));
 	}
@@ -720,7 +733,7 @@ namespace EEmitter
 		xTLTU(rs, rt, 0x00);
 	}
 
-	void xTNE(const xRegisterGPR& rs, const xRegisterGPR& rt, const u32& code)
+	void xTNE(const xRegisterGPR& rs, const xRegisterGPR& rt, u32 code)
 	{
 		block->Emit(GEN_SPECIAL_CODE_TRAP(rs.id, rt.id, code, Opcodes::CLASS_SPECIAL::TNE));
 	}
@@ -748,6 +761,93 @@ namespace EEmitter
 	void xXORI(const xRegisterGPR& rt, const xRegisterGPR& rs, const u16& imm)
 	{
 		block->Emit(GEN_OP_IMM(Opcodes::XORI, rs.id, rt.id, imm));
+	}
+
+	// MMI
+
+	void xPCPYLD(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		block->Emit(GEN_MMI2(rs.id, rt.id, rd.id, Opcodes::PCPYLD));
+	}
+
+	void xPCPYLD(const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		xPCPYLD(rs, rs, rt);
+	}
+
+	void xPEXTLW(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		block->Emit(GEN_MMI0(rs.id, rt.id, rd.id, Opcodes::PEXTLW));
+	}
+
+	void xPEXTLW(const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		xPEXTLW(rs, rs, rt);
+	}
+
+	void xPOR(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		block->Emit(GEN_MMI3(rs.id, rt.id, rd.id, Opcodes::POR));
+	}
+
+	void xPOR(const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		xPOR(rs, rs, rt);
+	}
+
+	void xPAND(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		block->Emit(GEN_MMI2(rs.id, rt.id, rd.id, Opcodes::PAND));
+	}
+
+	void xPAND(const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		xPAND(rs, rs, rt);
+	}
+
+	void xPCEQW(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		block->Emit(GEN_MMI1(rs.id, rt.id, rd.id, Opcodes::PCEQW));
+	}
+
+	void xPCEQW(const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		xPCEQW(rs, rs, rt);
+	}
+
+	void xPCGTW(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		block->Emit(GEN_MMI0(rs.id, rt.id, rd.id, Opcodes::PCGTW));
+	}
+
+	void xPCGTW(const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		xPCGTW(rs, rs, rt);
+	}
+
+	void xPPACB(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		block->Emit(GEN_MMI0(rs.id, rt.id, rd.id, Opcodes::PPACB));
+	}
+
+	void xPPACB(const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		xPPACB(rs, rs, rt);
+	}
+
+	void xPPACH(const xRegisterGPR& rd, const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		block->Emit(GEN_MMI0(rs.id, rt.id, rd.id, Opcodes::PPACH));
+	}
+
+	void xPPACH(const xRegisterGPR& rs, const xRegisterGPR& rt)
+	{
+		xPPACH(rs, rs, rt);
+	}
+
+	void xPREVH(const xRegisterGPR& rd, const xRegisterGPR& rt)
+	{
+		block->Emit(GEN_MMI2(0, rt.id, rd.id, Opcodes::PREVH));
 	}
 
 } // namespace EEmitter
